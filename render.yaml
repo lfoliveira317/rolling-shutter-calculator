@@ -20,6 +20,13 @@ services:
         value: Rolling Shutter Calculator
       - key: PORT
         value: 3000
+      # Optional: Manus OAuth (leave empty if not using)
+      - key: VITE_OAUTH_PORTAL_URL
+        value: ""
+      - key: VITE_APP_ID
+        value: ""
+      - key: OAUTH_SERVER_URL
+        value: ""
     healthCheckPath: /api/health
 
 databases:
