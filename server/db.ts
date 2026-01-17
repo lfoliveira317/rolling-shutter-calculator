@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, productPrices, quotations, InsertQuotation } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,59 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Product Prices
+export async function getAllProductPrices() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(productPrices);
+}
+
+export async function getProductPriceByType(productType: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(productPrices).where(eq(productPrices.productType, productType)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateProductPrice(productType: string, pricePerSqm: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(productPrices)
+    .set({ pricePerSqm, updatedAt: new Date() })
+    .where(eq(productPrices.productType, productType));
+}
+
+// Quotations
+export async function createQuotation(quotation: InsertQuotation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(quotations).values(quotation);
+  return result;
+}
+
+export async function getAllQuotations() {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(quotations).orderBy(quotations.createdAt);
+}
+
+export async function getQuotationById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(quotations).where(eq(quotations.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getQuotationByNumber(quotationNumber: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(quotations).where(eq(quotations.quotationNumber, quotationNumber)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}

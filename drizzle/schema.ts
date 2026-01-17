@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, json } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -25,4 +25,68 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Product pricing configuration table
+ * Stores price per square meter for each product type
+ */
+export const productPrices = mysqlTable("product_prices", {
+  id: int("id").autoincrement().primaryKey(),
+  productType: varchar("product_type", { length: 50 }).notNull().unique(),
+  pricePerSqm: decimal("price_per_sqm", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProductPrice = typeof productPrices.$inferSelect;
+export type InsertProductPrice = typeof productPrices.$inferInsert;
+
+/**
+ * Quotations table
+ * Stores all generated quotations with customer and pricing details
+ */
+export const quotations = mysqlTable("quotations", {
+  id: int("id").autoincrement().primaryKey(),
+  quotationNumber: varchar("quotation_number", { length: 50 }).notNull().unique(),
+  
+  // Customer information
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 320 }),
+  customerPhone: varchar("customer_phone", { length: 50 }),
+  customerAddress: text("customer_address"),
+  
+  // Product details
+  productType: varchar("product_type", { length: 50 }).notNull(),
+  width: decimal("width", { precision: 10, scale: 2 }).notNull(), // in cm
+  height: decimal("height", { precision: 10, scale: 2 }).notNull(), // in cm
+  quantity: int("quantity").notNull(),
+  area: decimal("area", { precision: 10, scale: 2 }).notNull(), // in m²
+  
+  // Pricing
+  pricePerSqm: decimal("price_per_sqm", { precision: 10, scale: 2 }).notNull(),
+  netPrice: decimal("net_price", { precision: 10, scale: 2 }).notNull(),
+  vatPercentage: decimal("vat_percentage", { precision: 5, scale: 2 }).notNull(),
+  vatAmount: decimal("vat_amount", { precision: 10, scale: 2 }).notNull(),
+  grossPrice: decimal("gross_price", { precision: 10, scale: 2 }).notNull(),
+  
+  // Discounts
+  discountType: mysqlEnum("discount_type", ["none", "percentage", "fixed"]).default("none").notNull(),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).default("0").notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  
+  // Additional costs (stored as JSON array)
+  additionalCosts: json("additional_costs").$type<Array<{ name: string; amount: number }>>(),
+  additionalCostsTotal: decimal("additional_costs_total", { precision: 10, scale: 2 }).default("0").notNull(),
+  
+  // Final total
+  finalTotal: decimal("final_total", { precision: 10, scale: 2 }).notNull(),
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: int("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Quotation = typeof quotations.$inferSelect;
+export type InsertQuotation = typeof quotations.$inferInsert;
